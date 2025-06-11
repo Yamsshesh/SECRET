@@ -17,11 +17,11 @@ jobs:
         sudo apt update
         sudo apt install -y git wget curl build-essential bc flex bison libssl-dev libelf-dev libncurses5-dev
 
-    - name: 🧠 Clone Toolchain
+    - name: 🧠 Clone ProtonClang Toolchain
       run: |
-        git clone --depth=1 https://github.com/ZyCromerZ/aarch64-zyc-clang clang
+        git clone --depth=1 https://github.com/kdrag0n/proton-clang clang
 
-    - name: 💻 Clone LOS Kernel Source
+    - name: 💻 Clone LOS Kernel Source (Poco F1)
       run: |
         git clone --depth=1 https://github.com/LineageOS/android_kernel_xiaomi_beryllium kernel
 
@@ -30,9 +30,10 @@ jobs:
       run: |
         export ARCH=arm64
         export SUBARCH=arm64
+        export KBUILD_COMPILER_STRING="ProtonClang"
         export CLANG_PATH=${{ github.workspace }}/clang
         export PATH=$CLANG_PATH/bin:$PATH
-        make O=out berillyum_defconfig
+        make O=out ARCH=arm64 berillyum_defconfig
         make -j$(nproc) O=out \
           CC=clang \
           CROSS_COMPILE=aarch64-linux-gnu- \
