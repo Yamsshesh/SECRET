@@ -1,4 +1,4 @@
-name: Build SECRET Kernel for Poco F1
+name: Build SECRET Kernel
 
 on:
   push:
@@ -10,47 +10,51 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout repo
-        uses: actions/checkout@v4
+    - name: Checkout
+      uses: actions/checkout@v4
 
-      - name: Set up environment
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y bc bison build-essential curl flex git kmod libncurses5-dev libssl-dev libelf-dev python3 unzip zip
+    - name: Install dependencies
+      run: |
+        sudo apt update
+        sudo apt install -y bc bison build-essential curl flex git kmod libssl-dev \
+          libelf-dev libncurses5-dev python3 python-is-python3 unzip zip
 
-      - name: Clone aarch64-zyc-clang
-        run: |
-          git clone --depth=1 https://gitlab.com/ZyCromerZ/aarch64-zyc-clang.git clang
+    - name: Clone Clang
+      run: |
+        git clone --depth=1 https://gitlab.com/ZyCromerZ/aarch64-zyc-clang.git clang
 
-      - name: Clone kernel source
-        run: |
-          git clone --depth=1 https://github.com/LineageOS/android_kernel_xiaomi_beryllium.git kernel
+    - name: Clone Kernel Source
+      run: |
+        git clone --depth=1 https://github.com/LineageOS/android_kernel_xiaomi_beryllium.git kernel
 
-      - name: Build kernel
-        run: |
-          export KBUILD_BUILD_USER=secret
-          export KBUILD_BUILD_HOST=kernel
-          export PATH=$GITHUB_WORKSPACE/clang/bin:$PATH
-          cd kernel
-          make O=out ARCH=arm64 SECRET_defconfig
-          make -j$(nproc) O=out ARCH=arm64 \
-            CC=clang \
-            CLANG_TRIPLE=aarch64-linux-gnu- \
-            CROSS_COMPILE=aarch64-linux-gnu- \
-            CROSS_COMPILE_ARM32=arm-linux-gnueabi-
+    - name: Build Kernel
+      run: |
+        export PATH=$GITHUB_WORKSPACE/clang/bin:$PATH
+        export ARCH=arm64
+        export SUBARCH=arm64
+        export KBUILD_BUILD_USER=secret
+        export KBUILD_BUILD_HOST=github
 
-      - name: Copy Image
-        run: |
-          mkdir -p AnyKernel3
-          cp kernel/out/arch/arm64/boot/Image.gz-dtb AnyKernel3/zImage
+        cd kernel
+        make O=out SECRET_defconfig
+        make -j$(nproc) O=out \
+          CC=clang \
+          CLANG_TRIPLE=aarch64-linux-gnu- \
+          CROSS_COMPILE=aarch64-linux-gnu- \
+          CROSS_COMPILE_ARM32=arm-linux-gnueabi-
 
-      - name: Make flashable zip
-        run: |
-          cd AnyKernel3
-          zip -r9 ../SECRET-Kernel-Beryllium-FullMadness.zip *
+    - name: Prepare AnyKernel3
+      run: |
+        git clone --depth=1 https://github.com/osm0sis/AnyKernel3.git AnyKernel3
+        cp kernel/out/arch/arm64/boot/Image.gz-dtb AnyKernel3/zImage
 
-      - name: Upload artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: SECRET-Kernel
-          path: SECRET-Kernel-Beryllium-FullMadness.zip
+    - name: Zip Kernel
+      run: |
+        cd AnyKernel3
+        zip -r9 ../SECRET-Kernel.zip *
+
+    - name: Upload Artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: SECRET-Kernel
+        path: SECRET-Kernel.zip
