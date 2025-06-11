@@ -10,18 +10,19 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - name: Checkout
+    - name: Checkout source
       uses: actions/checkout@v4
 
     - name: Install dependencies
       run: |
         sudo apt update
-        sudo apt install -y bc bison build-essential curl flex git kmod libssl-dev \
-          libelf-dev libncurses5-dev python3 python-is-python3 unzip zip
+        sudo apt install -y bc bison build-essential curl flex git kmod \
+          libssl-dev libelf-dev libncurses5-dev python-is-python3 \
+          python3 unzip zip
 
-    - name: Clone Clang
+    - name: Clone Clang (GitHub Mirror)
       run: |
-        git clone --depth=1 https://gitlab.com/ZyCromerZ/aarch64-zyc-clang.git clang
+        git clone --depth=1 https://github.com/ZyCromerZ/Clang-Stable clang
 
     - name: Clone Kernel Source
       run: |
