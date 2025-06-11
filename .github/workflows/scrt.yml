@@ -11,38 +11,46 @@ jobs:
     - name: Install dependencies
       run: |
         sudo apt update
-        sudo apt install -y git wget curl zip unzip build-essential bc \
-        libncurses5-dev bison flex libssl-dev libelf-dev ccache
+        sudo apt install -y git wget curl zip unzip \
+        bc bison build-essential ca-certificates \
+        cpio flex libncurses5-dev libssl-dev \
+        python-is-python3 libelf-dev
 
-    - name: Clone Toolchain
+    - name: Clone Toolchain (Neutron clang)
       run: |
-        git clone --depth=1 https://github.com/kdrag0n/proton-clang clang
+        git clone --depth=1 https://github.com/Neutron-Toolchains/clang-llvm.git clang
 
     - name: Clone Kernel Source (CAF)
       run: |
-        git clone --depth=1 https://github.com/ADeadDroid/kernel_xiaomi_sdm845 kernel
-        ls kernel
+        git clone --depth=1 https://github.com/YOUR-CAF-SOURCE/kernel_xiaomi_sdm845.git kernel
 
     - name: Compile Kernel
       run: |
         cd kernel
-        export KERNEL_DIR=$(pwd)
         export ARCH=arm64
         export SUBARCH=arm64
-        export KBUILD_BUILD_USER=SECRET
-        export KBUILD_BUILD_HOST=POCO-F1
-        export CROSS_COMPILE=$GITHUB_WORKSPACE/clang/bin/aarch64-linux-gnu-
-        export CLANG_TRIPLE=aarch64-linux-gnu-
-        export PATH=$GITHUB_WORKSPACE/clang/bin:$PATH
+        export KBUILD_BUILD_HOST=secret
+        export KBUILD_BUILD_USER=kernelbuild
+        export CLANG_PATH=$(pwd)/../clang
+        export PATH=$CLANG_PATH/bin:$PATH
+        make O=out ARCH=arm64 vendor/beryllium_defconfig
+        make -j$(nproc --all) O=out \
+        ARCH=arm64 \
+        CC=clang \
+        CLANG_TRIPLE=aarch64-linux-gnu- \
+        CROSS_COMPILE=aarch64-linux-gnu- \
+        CROSS_COMPILE_ARM32=arm-linux-gnueabi-
 
-        make O=out ARCH=arm64 vendor/winkernel_defconfig
-        make -j$(nproc) O=out ARCH=arm64 \
-          CC=clang \
-          CROSS_COMPILE=aarch64-linux-gnu- \
-          CROSS_COMPILE_ARM32=arm-linux-gnueabi-
+    - name: Make flashable zip (AnyKernel3)
+      run: |
+        cd $GITHUB_WORKSPACE
+        git clone --depth=1 https://github.com/osm0sis/AnyKernel3 anykernel
+        cp -r kernel/out/arch/arm64/boot/Image.gz-dtb anykernel/
+        cd anykernel
+        zip -r9 SECRET-Kernel-PocoF1.zip * -x .git README.md
 
-    - name: Upload Kernel
-      uses: actions/upload-artifact@v3
+    - name: Upload Kernel Zip
+      uses: actions/upload-artifact@v4
       with:
-        name: SECRET-KERNEL
-        path: kernel/out/arch/arm64/boot/Image.gz-dtb
+        name: SECRET-Kernel
+        path: anykernel/SECRET-Kernel-PocoF1.zip
